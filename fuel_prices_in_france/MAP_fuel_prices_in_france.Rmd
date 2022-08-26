@@ -1,0 +1,112 @@
+---
+title: "Fuel prices in France"
+author: "mariebrisson"
+date: "25/08/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setting_up_environment, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
+getwd()
+setwd(dir = "mariebrisson.github.io/fuel_prices_in_france")
+
+#install.packages("XML")
+library(XML)
+#library(readr)
+#install.packages("leaflet")
+library(leaflet)
+library(rgdal)
+
+```
+
+
+```{r data_prep, echo=FALSE,message=FALSE, warning=FALSE, error=FALSE, results='hide'}
+
+# URL where file is stored
+date_AAAAMMJJ = gsub('-','',as.character(Sys.Date()-1) )
+url <- paste("https://donnees.roulez-eco.fr/opendata/jour/",date_AAAAMMJJ, sep='')
+
+#destination where file is saved
+zipFile <- paste(as.character(getwd()),"/PrixCarburants_quotidien_",date_AAAAMMJJ,".zip", sep='')
+
+# downloading file with R
+#download.file(url, zipFile, method='curl')
+
+# unzipping the XML file
+unzip(zipfile = zipFile, exdir = as.character(getwd()) )
+
+# removing zip file
+file.remove(zipFile)
+
+#xml file name
+xmlFile_fuel_prices = gsub(".zip", ".xml", zipFile)
+
+```
+
+```{r fuel_prices, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
+# Reading the XML file
+carburants<-xmlParse(xmlFile_fuel_prices, encoding = "ISO-8859-1")
+
+# removing xml file
+file.remove(xmlFile_fuel_prices)
+
+# L’identifiant des stations proposant du gazole
+id = sapply(getNodeSet(carburants,"/pdv_liste/pdv[prix[@nom='Gazole'][position()=1]]"),xmlGetAttr,"id")
+
+# number of stations
+nb_stations = length(id)
+
+# department number
+code_postal = sapply(getNodeSet(carburants,"/pdv_liste/pdv[prix[@nom='Gazole'][position()=1]]"), xmlGetAttr,"cp")
+dept = substring(code_postal,1,2)
+
+# GPS coordinates
+latitude = as.numeric(sapply(getNodeSet(carburants,"/pdv_liste/pdv[prix[@nom='Gazole'][position()=1]]"),xmlGetAttr,"latitude"))/100000
+longitude = as.numeric(sapply(getNodeSet(carburants,"/pdv_liste/pdv[prix[@nom='Gazole'][position()=1]]"),xmlGetAttr,"longitude"))/100000
+
+# Gazole prices and fuel prices by quartiles
+prix = as.numeric(sapply(getNodeSet(carburants,"//pdv/prix[@nom='Gazole'][position()=1]"),xmlGetAttr,"valeur"))/1000
+class_quart = cut(prix,quantile(prix),labels=c("Low","Lower-Middle","Higher-Middle","High"),include.lowest = TRUE)
+
+
+# dataframe creation
+df = as.data.frame(cbind(id,prix,class_quart,dept,latitude,longitude))
+
+```
+
+```{r prep_map_fuel_prices, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
+#Map of fuel prices in France.
+# Color palette according to price quartile classes
+quartpal <- colorFactor("YlOrRd", df$class_quart) 
+# Create a palette that maps factor levels to colors
+pal <- colorFactor(c("green", "yellow", "orange", "red"), domain = c("1", "2", "3", "4"))
+```
+
+```{r map_fuel_prices, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
+# Drawing the Map 
+#leaflet(df) %>% addProviderTiles(providers$Stamen.Toner) %>% 
+#  setView(lng = 2.4302778, lat = 46.5397222, zoom = 5) %>% 
+#  addCircles(lng = ~as.numeric(longitude), lat = ~as.numeric(latitude), weight = 3,  color = ~pal(class_quart))%>%
+#  addLegend(pal = pal, values = ~class_quart, title = "Price class",opacity = 1)
+
+leaflet(df) %>% addTiles() %>%
+  addAwesomeMarkers(lng = ~as.numeric(longitude), ~as.numeric(latitude),  label=~as.character(class_quart),clusterOptions=markerClusterOptions())%>%
+  addCircleMarkers(
+    ~as.numeric(longitude),
+    ~as.numeric(latitude),
+    radius = 10,
+    color = ~pal(class_quart),
+    stroke = FALSE, fillOpacity = 1,
+    clusterOptions = markerClusterOptions()
+  )%>%
+  addLegend(pal = pal,
+            values = ~class_quart,
+            title = "Price class",
+            opacity = 1)
+#  addMarkers(~as.numeric(longitude), ~as.numeric(latitude), label=~as.character(class_quart), clusterOptions=markerClusterOptions())
+
+```

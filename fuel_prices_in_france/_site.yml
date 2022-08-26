@@ -1,0 +1,25 @@
+name: "mariebrisson.fr"
+
+navbar:
+
+  title: "Gazole prices in France"
+
+  left:
+    - text: "Home"
+      href: https://mariebrisson.github.io
+
+  right: 
+    - text: "Home"
+      icon: fa-home
+      href: https://mariebrisson.fr
+    
+    - text: "About"
+      icon: fa-info
+      href: https://mariebrisson.fr
+    
+    - icon: fa-github fa-lg
+      href: http://github.com/clementmariebrisson
+
+output:
+  html_document:
+    theme: darkly
