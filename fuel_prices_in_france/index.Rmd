@@ -1,5 +1,5 @@
 ---
-title: "Fuel prices in France"
+title: "Gazole prices in France"
 author: "mariebrisson"
 date: "25/08/2022"
 output: html_document
@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r setting_up_environment, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 getwd()
-setwd(dir = "mariebrisson.github.io/fuel_prices_in_france")
+setwd(dir = "C:/Users/cmbri/Documents/4.Perso/mariebrisson.fr/github/mariebrisson.github.io/fuel_prices_in_france")
 
 #install.packages("XML")
 library(XML)
